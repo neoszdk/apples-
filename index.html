@@ -1,0 +1,113 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catch the Apples</title>
+  <style>
+    body { margin: 0; background: #e0f7fa; overflow: hidden; font-family: sans-serif; }
+    canvas { display: block; background: #a7d28d; }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    const basket = { x: width / 2 - 50, y: height - 60, width: 100, height: 20 };
+    const apples = [];
+    const appleCount = 3;
+    let caught = 0;
+    let gameOver = false;
+    let startTime = Date.now();
+
+    function spawnApple() {
+      apples.push({ x: Math.random() * (width - 20), y: -20, radius: 10, speed: 4 + Math.random() * 3 });
+    }
+
+    for (let i = 0; i < appleCount; i++) setTimeout(spawnApple, i * 400);
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw basket
+      ctx.fillStyle = "#654321";
+      ctx.fillRect(basket.x, basket.y, basket.width, basket.height);
+
+      // Draw apples
+      ctx.fillStyle = "#f00";
+      for (let apple of apples) {
+        ctx.beginPath();
+        ctx.arc(apple.x, apple.y, apple.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // UI
+      ctx.fillStyle = "#000";
+      ctx.font = "18px sans-serif";
+      ctx.fillText(`Caught: ${caught}/${appleCount}`, 10, 20);
+
+      if (gameOver) {
+        ctx.font = "30px sans-serif";
+        ctx.fillText(caught === appleCount ? "You Win!" : "Game Over", width / 2 - 80, height / 2);
+      }
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      for (let apple of apples) {
+        apple.y += apple.speed;
+        if (
+          apple.y + apple.radius >= basket.y &&
+          apple.x >= basket.x &&
+          apple.x <= basket.x + basket.width
+        ) {
+          caught++;
+          apple.y = -999;
+        } else if (apple.y > height + 10) {
+          apple.y = -999;
+        }
+      }
+
+      if (caught === appleCount || Date.now() - startTime > 8000) {
+        gameOver = true;
+      }
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+    loop();
+
+    // Controls — tilt
+    window.addEventListener("deviceorientation", (e) => {
+      if (gameOver) return;
+      let tilt = e.gamma;
+      if (tilt != null) {
+        basket.x += tilt * 2;
+        if (basket.x < 0) basket.x = 0;
+        if (basket.x + basket.width > width) basket.x = width - basket.width;
+      }
+    });
+
+    // Fallback — touch
+    canvas.addEventListener("touchmove", (e) => {
+      let x = e.touches[0].clientX;
+      basket.x = x - basket.width / 2;
+    });
+
+    window.addEventListener("resize", () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      basket.y = height - 60;
+    });
+  </script>
+</body>
+</html>
